@@ -7,8 +7,8 @@ import QuestionsSection from './_components/QuestionsSection';
 import RecordAnswerSection from './_components/RecordAnswerSection';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { ChevronLeft, Info, Send, Sparkles } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronLeft, Send, Sparkles, Timer, LayoutDashboard, ChevronRight } from 'lucide-react';
 
 function StartInterview({ params }) {
   const { interviewId } = use(params);
@@ -19,6 +19,7 @@ function StartInterview({ params }) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [recordedAnswers, setRecordedAnswers] = useState({});
+  const [isQuestionAnswered, setIsQuestionAnswered] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -47,16 +48,19 @@ function StartInterview({ params }) {
   const handleQuestionChange = (newIndex) => {
     if (newIndex >= 0 && newIndex < mockInterviewQuestions.length) {
       setCurrentQuestionIndex(newIndex);
+      setIsQuestionAnswered(!!answers[newIndex]);
     }
   };
 
   const handleAnswerChange = (questionIndex, answer) => {
     setAnswers(prev => ({ ...prev, [questionIndex]: answer }));
+    if (questionIndex === currentQuestionIndex) setIsQuestionAnswered(true);
   };
 
   const handleRecordedAnswer = (questionIndex, recordingUrl, transcriptText) => {
     setRecordedAnswers(prev => ({ ...prev, [questionIndex]: recordingUrl }));
     setAnswers(prev => ({ ...prev, [questionIndex]: transcriptText }));
+    if (questionIndex === currentQuestionIndex) setIsQuestionAnswered(true);
   };
 
   const handleSubmitInterview = async () => {
@@ -68,60 +72,55 @@ function StartInterview({ params }) {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-        <p className="text-gray-500 font-bold animate-pulse">Synchronizing AI Agents...</p>
+        <div className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+        <p className="text-gray-500 font-black animate-pulse uppercase tracking-[0.2em] text-xs">Calibrating AI Neural Links...</p>
       </div>
     );
   }
 
   return (
-    <div className='flex flex-col gap-8'>
-        {/* Top Navigation & Status */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-xl">
-                    <ChevronLeft size={24} />
+    <div className='flex flex-col h-[calc(100vh-140px)] min-h-[600px]'>
+        {/* Top bar with high-end aesthetic */}
+        <div className="flex items-center justify-between mb-8 bg-white dark:bg-gray-950 p-6 rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-sm">
+            <div className="flex items-center gap-6">
+                <Button variant="ghost" size="icon" onClick={() => router.replace('/dashboard')} className="rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-900 h-12 w-12">
+                    <LayoutDashboard size={20} />
                 </Button>
+                <div className="h-8 w-[1px] bg-gray-200 dark:bg-gray-800" />
                 <div>
-                    <h1 className='text-3xl font-black tracking-tight text-gray-900 dark:text-white font-serif'>
-                        Live Session
-                    </h1>
-                    <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                        <p className="text-xs font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">Recoding Active • {interviewDetails?.jobPosition}</p>
+                   <h1 className='text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter flex items-center gap-2'>
+                        Live Assessment <span className="text-indigo-600">Room</span>
+                   </h1>
+                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{interviewDetails?.jobPosition} • Technical Round</p>
+                </div>
+            </div>
+
+            <div className="flex items-center gap-6">
+                <div className="flex flex-col items-end">
+                    <div className="flex items-center gap-2 mb-1">
+                        <div className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
+                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Live Stream Active</span>
+                    </div>
+                    <div className="flex gap-1">
+                        {mockInterviewQuestions.map((_, index) => (
+                            <div key={index} className={`h-1 rounded-full transition-all duration-500 ${index <= currentQuestionIndex ? 'w-4 bg-indigo-600' : 'w-2 bg-gray-200 dark:bg-gray-800'}`} />
+                        ))}
                     </div>
                 </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-                <div className="hidden lg:flex flex-col items-end mr-4">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Progress</p>
-                    <p className="text-lg font-black text-indigo-600 leading-none">{currentQuestionIndex + 1} <span className="text-gray-300 dark:text-gray-700">/ {mockInterviewQuestions?.length}</span></p>
-                </div>
+                
                 <Button 
                     onClick={handleSubmitInterview}
-                    className="bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/20 dark:text-red-400 rounded-2xl px-6 h-12 font-bold transition-all flex items-center gap-2 border border-red-100 dark:border-red-900"
+                    className="bg-red-600 hover:bg-red-700 text-white rounded-2xl px-6 h-12 font-black text-xs uppercase tracking-widest shadow-lg shadow-red-600/20 active:scale-95 transition-all"
                 >
-                    <Send size={18} />
-                    End Interview
+                    Finish Session
                 </Button>
             </div>
         </div>
 
-        {/* Global Progress Bar */}
-        <div className="w-full h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-            <motion.div 
-                className="h-full bg-indigo-600"
-                initial={{ width: 0 }}
-                animate={{ width: `${((currentQuestionIndex + 1) / mockInterviewQuestions?.length) * 100}%` }}
-                transition={{ type: 'spring', bounce: 0, duration: 0.5 }}
-            />
-        </div>
-
-        {/* Main Content Grid */}
-        <div className='grid grid-cols-1 lg:grid-cols-12 gap-10'>
-            {/* Left Section - Question Details */}
-            <div className='lg:col-span-6 space-y-6'>
+        {/* Rigid Split-Screen Layout */}
+        <div className='flex flex-1 gap-8 overflow-hidden'>
+            {/* Left Panel - Question Flow (40%) */}
+            <div className='w-[40%] flex flex-col'>
                 <QuestionsSection 
                     mockInterviewQuestions={mockInterviewQuestions}
                     currentQuestionIndex={currentQuestionIndex}
@@ -129,22 +128,10 @@ function StartInterview({ params }) {
                     answers={answers}
                     onAnswerChange={handleAnswerChange}
                 />
-                
-                <div className='p-6 bg-amber-50 dark:bg-amber-950/20 rounded-[32px] border border-amber-100 dark:border-amber-900/50 flex items-start gap-4'>
-                    <div className="p-2 bg-amber-100 dark:bg-amber-900/50 rounded-xl text-amber-700 dark:text-amber-400">
-                        <Info size={20} />
-                    </div>
-                    <div>
-                        <h4 className='font-bold text-amber-900 dark:text-amber-300 text-sm mb-1'>Important Note</h4>
-                        <p className='text-xs font-medium text-amber-800 dark:text-amber-400 leading-relaxed'>
-                            Click on 'Record Answer' when you're ready to speak. The AI will listen to your response and provide a detailed analysis based on technical correctness and communication.
-                        </p>
-                    </div>
-                </div>
             </div>
 
-            {/* Right Section - AI Recording Chamber */}
-            <div className='lg:col-span-6'>
+            {/* Right Panel - Recording Hall (60%) */}
+            <div className='w-[60%] flex flex-col relative'>
                 <RecordAnswerSection 
                     mockInterviewQuestions={mockInterviewQuestions}
                     currentQuestionIndex={currentQuestionIndex}
@@ -152,6 +139,26 @@ function StartInterview({ params }) {
                     recordedAnswers={recordedAnswers}
                     interviewId={interviewId}
                 />
+
+                {/* Floating "Next" action when answered */}
+                <AnimatePresence>
+                    {isQuestionAnswered && currentQuestionIndex < mockInterviewQuestions.length - 1 && (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                            className="absolute bottom-10 right-10 z-50"
+                        >
+                            <Button 
+                                onClick={() => handleQuestionChange(currentQuestionIndex + 1)}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-3xl px-10 h-16 font-black text-md shadow-2xl shadow-indigo-600/30 active:scale-95 transition-all flex items-center gap-3"
+                            >
+                                CONTINUE TO NEXT
+                                <ChevronRight size={24} />
+                            </Button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     </div>
