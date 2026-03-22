@@ -8,7 +8,8 @@ import { UserAnswer, MockInterview } from '@/utils/schema'
 import { eq, desc } from 'drizzle-orm'
 import { useAuth } from '@/lib/AuthContext'
 import { motion } from 'framer-motion'
-import { Sparkles, Activity, Clock, Award, Star, History, TrendingUp, Target } from 'lucide-react'
+import { Sparkles, Activity, Clock, Award, Star, History, TrendingUp, Target, Zap } from 'lucide-react'
+import moment from 'moment'
 
 function Dashboard() {
   const { user } = useAuth();
