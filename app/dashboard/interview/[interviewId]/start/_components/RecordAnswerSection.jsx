@@ -42,7 +42,6 @@ function RecordAnswerSection({
         return () => stopTimer();
     }, []);
 
-    // Reset success state when question changes
     useEffect(() => {
         setSaveSuccess(false);
         resetTranscript();
@@ -106,7 +105,7 @@ function RecordAnswerSection({
         
         try {
             const currentQuestion = mockInterviewQuestions[currentQuestionIndex].question;
-            const userAns = transcript || "Binary video capture.";
+            const userAns = transcript || "User provided an answer.";
             
             const response = await fetch("/api/feedback", {
                 method: "POST",
@@ -117,19 +116,20 @@ function RecordAnswerSection({
                 }),
             });
 
-            const feedbackJson = await response.json();
+            const feedbackData = await response.json();
 
+            // Store the entire structured feedback as a JSON string in the 'feedback' column
             const resp = await db.insert(UserAnswer).values({
                 mockIdRef: interviewId,
                 question: currentQuestion,
-                correctAns: mockInterviewQuestions[currentQuestionIndex].answer || '',
+                correctAns: feedbackData.model_answer || '',
                 userAns: userAns,
-                feedback: feedbackJson.feedback,
-                rating: String(feedbackJson.rating),
-                difficulty: feedbackJson.difficulty || 'Intermediate',
-                category: feedbackJson.category || 'Core Technical',
+                feedback: JSON.stringify(feedbackData), // Critical change: Save entire object
+                rating: String(feedbackData.score),
+                difficulty: mockInterviewQuestions[currentQuestionIndex].difficulty || 'Intermediate',
+                category: mockInterviewQuestions[currentQuestionIndex].category || 'Technical',
                 userEmail: user?.email || 'unknown',
-                createdAt: moment().format('DD-MM-YYYY')
+                createdAt: moment().toDate() // Use Date object for timestamp
             });
 
             if (resp) {
@@ -175,7 +175,7 @@ function RecordAnswerSection({
                                     initial={{ opacity: 0, scale: 0.9 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.9 }}
-                                    className="flex items-center gap-4 bg-red-600 px-5 py-2.5 rounded-2xl"
+                                    className="flex items-center gap-4 bg-red-600 px-5 py-2.5 rounded-2xl pointer-events-auto"
                                 >
                                     <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse shadow-[0_0_10px_white]" />
                                     <span className="text-xs font-black text-white uppercase tracking-widest">Recording</span>
@@ -295,7 +295,7 @@ function RecordAnswerSection({
                                 <div className="w-1 h-1 bg-indigo-600 rounded-full animate-bounce [animation-delay:0.4s]" />
                              </div>
                         </div>
-                        <p className="text-xl font-bold text-gray-800 dark:text-white leading-relaxed font-serif italic max-h-[150px] overflow-y-auto">
+                        <p className="text-xl font-bold text-gray-800 dark:text-white leading-relaxed font-serif italic max-h-[150px] overflow-y-auto cursor-default">
                             "{transcript}"
                         </p>
                     </motion.div>

@@ -13,20 +13,28 @@ export async function POST(req) {
             Question: ${question}
             User Answer: ${userAns}
             
-            Evaluate the user's answer for technical accuracy, completeness, and clarity.
-            Provide a rating from 1 to 10 and constructive feedback in 3-5 lines.
-            
-            Return the response strictly in JSON format:
+            As a Senior Technical Interviewer, evaluate the user's answer based on:
+            1. Technical Correctness: Is the answer factually accurate?
+            2. Communication Clarity: Is the tone professional and the explanation clear?
+            3. Completeness: Did the user cover all aspects of the question?
+            4. Confidence: Does the answer sound authoritative and well-reasoned?
+            5. Keyword Relevance: Did they use appropriate industry terminology?
+
+            Return the evaluation strictly in the following JSON structure:
             {
-                "rating": "number",
-                "feedback": "string"
+                "score": (number 1-10),
+                "confidence_rating": (string: "High", "Moderate", or "Low"),
+                "performance_summary": (string 1-2 sentences),
+                "strengths": [(array of 2-3 specific points)],
+                "weaknesses": [(array of 2-3 specific points)],
+                "improvements": [(array of 2-3 actionable tips)],
+                "model_answer": (string: a concise, high-quality reference answer)
             }
         `;
 
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
         
-        // Clean the response if it contains markdown code blocks
         const cleanJson = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
         const feedbackData = JSON.parse(cleanJson);
 
@@ -34,6 +42,6 @@ export async function POST(req) {
 
     } catch (error) {
         console.error("Error in feedback API:", error);
-        return NextResponse.json({ error: "Failed to generate feedback" }, { status: 500 });
+        return NextResponse.json({ error: "Failed to generate professional assessment" }, { status: 500 });
     }
 }
