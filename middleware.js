@@ -1,11 +1,22 @@
-import { clerkMiddleware } from '@clerk/nextjs/server';
-import { createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
-const isProtectedRoute = createRouteMatcher(['/dashboard(.*)', '/forum(.*)']);
+export function middleware(request) {
+  const { pathname } = request.nextUrl;
 
-export default clerkMiddleware(async (auth, req) => {
-    if (isProtectedRoute(req)) await auth.protect()
-  });
+  // Define protected routes
+  const isProtectedRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/forum');
+
+  // Check for the session cookie
+  const session = request.cookies.get('auth-session');
+
+  if (isProtectedRoute && !session) {
+    // Redirect to login if accessing protected route without session
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  // Allow the request to proceed
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: [

@@ -14,9 +14,26 @@ export async function generateInterviewQuestions(jobPosition, jobDescription, ye
         };
 
         const model = 'gemini-1.5-flash';
-
-        // Dynamic prompt using the parameters
-        const prompt = `Job position: ${jobPosition}, Job description: ${jobDescription}, Years of Experience: ${yearOfExperience}. Depending on this info, give me ${process.env.NEXT_PUBLIC_NUMBER_OF_QUESTIONS} real-life interview questions with answers in JSON format. The JSON should have an array of objects with "question" and "answer" fields.`;
+        
+        // Comprehensive prompt for better quality
+        const prompt = `
+            Job Role: ${jobPosition}
+            Job Description/Tech Stack: ${jobDescription}
+            Years of Experience: ${yearOfExperience}
+            Difficulty Level: ${process.env.NEXT_PUBLIC_DIFF_LEVEL || 'Intermediate'}
+            
+            Based on the information above, generate ${process.env.NEXT_PUBLIC_NUMBER_OF_QUESTIONS || 5} technical interview questions and their ideal answers.
+            
+            Return the response in strictly valid JSON format:
+            [
+                {
+                    "question": "The interview question",
+                    "answer": "The ideal model answer",
+                    "difficulty": "Easy/Intermediate/Hard",
+                    "category": "Technical/Behavioral/Conceptual"
+                }
+            ]
+        `;
 
         const contents = [
             {
@@ -105,7 +122,7 @@ export async function generateInterviewQuestionsStream(jobPosition, jobDescripti
             responseMimeType: 'application/json',
         };
 
-        const model = 'gemini-2.5-flash-preview-04-17';
+        const model = 'gemini-1.5-flash';
 
         const prompt = `Job position: ${jobPosition}, Job description: ${jobDescription}, Years of Experience: ${yearOfExperience}. Depending on this info, give me 5 real-life interview questions with answers in JSON format. The JSON should have an array of objects with "question" and "answer" fields.`;
 

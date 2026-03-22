@@ -1,4 +1,4 @@
-'use client'
+"use client"
 import React, { useEffect, useState, use } from 'react'
 import { db } from '@/utils/db';
 import { MockInterview } from '@/utils/schema';
@@ -17,10 +17,15 @@ import {
   MicOff,
   CameraOff,
   Play,
-  Settings
+  Settings,
+  ShieldCheck,
+  Zap,
+  ChevronLeft
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { motion } from 'framer-motion';
 
 function Interview({ params }) {
   const { interviewId } = use(params);
@@ -32,7 +37,6 @@ function Interview({ params }) {
   const [webcamStream, setWebcamStream] = useState(null);
   const [checklist, setChecklist] = useState({
     camera: false,
-    microphone: false,
     environment: false,
     mindset: false
   });
@@ -64,7 +68,6 @@ function Interview({ params }) {
     setChecklist(prev => ({ ...prev, [item]: !prev[item] }));
   };
 
-  // Handle webcam user media success
   const handleWebcamUserMedia = (stream) => {
     setIsCameraOpen(true);
     setIsMicEnabled(true);
@@ -72,7 +75,6 @@ function Interview({ params }) {
     setChecklist(prev => ({ ...prev, camera: true }));
   };
 
-  // Handle webcam user media error
   const handleWebcamUserMediaError = (error) => {
     console.error('Webcam error:', error);
     setIsCameraOpen(false);
@@ -81,289 +83,181 @@ function Interview({ params }) {
     setChecklist(prev => ({ ...prev, camera: false }));
   };
 
-  // Function to start interview with camera state
   const startInterviewWithCamera = () => {
     if (isCameraOpen && webcamStream) {
-      // Store camera state in sessionStorage to persist across page navigation
       const cameraState = {
         isCameraEnabled: true,
         timestamp: Date.now()
       };
-      
-      // Store in sessionStorage (temporary for this session)
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('interviewCameraState', JSON.stringify(cameraState));
       }
     }
-    
-    // Navigate to start page
     router.push(`/dashboard/interview/${interviewId}/start`);
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+        <p className="text-gray-500 font-bold animate-pulse">Initializing Virtual Interview Room...</p>
       </div>
     );
   }
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 py-8'>
-      <div className='max-w-7xl mx-auto px-4'>
-        {/* Header Section */}
-        <div className='text-center mb-12'>
-          <h1 className='text-4xl font-bold text-gray-900 mb-4'>
-            Interview Practice
-          </h1>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-          {/* LEFT COLUMN - Job Details */}
-          <div className='space-y-6'>
-            <div className='bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden'>
-              <div className='bg-gradient-to-r from-blue-600 to-indigo-600 p-6'>
-                <h2 className='text-xl font-semibold text-white flex items-center gap-2'>
-                  <Users className='h-5 w-5' />
-                  Interview Details
-                </h2>
-              </div>
-              <div className='p-6 space-y-4'>
-                <div>
-                  <label className='text-sm font-medium text-gray-500 uppercase tracking-wide'>Position</label>
-                  <p className='text-lg font-semibold text-gray-900 mt-1'>
-                    {interviewDetails?.jobPosition || 'Loading...'}
-                  </p>
-                </div>
-                <div>
-                  <label className='text-sm font-medium text-gray-500 uppercase tracking-wide'>Requirements</label>
-                  <p className='text-gray-900 text-lg font-semibold mt-1 leading-relaxed'>
-                    {interviewDetails?.jobDescription || 'Loading...'}
-                  </p>
-                </div>
-                <div>
-                  <label className='text-sm font-medium text-gray-500 uppercase tracking-wide'>Experience Level</label>
-                  <p className='text-lg font-semibold text-gray-900 mt-1'>
-                    {interviewDetails?.jobExperience || 'Loading...'} years
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Interview Tips */}
-            <div className='bg-amber-50 border border-amber-200 rounded-2xl p-6'>
-              <h3 className='flex items-center gap-2 text-amber-800 font-semibold text-lg mb-3'>
-                <Lightbulb className='h-5 w-5' />
-                Quick Tips
-              </h3>
-              <ul className='space-y-2 text-amber-700'>
-                <li className='flex items-start gap-2'>
-                  <CheckCircle className='h-4 w-4 mt-1 text-amber-600' />
-                  <span className='text-sm'>Speak clearly and maintain eye contact with the camera</span>
-                </li>
-                <li className='flex items-start gap-2'>
-                  <CheckCircle className='h-4 w-4 mt-1 text-amber-600' />
-                  <span className='text-sm'>Take your time to think before answering</span>
-                </li>
-                <li className='flex items-start gap-2'>
-                  <CheckCircle className='h-4 w-4 mt-1 text-amber-600' />
-                  <span className='text-sm'>Use the STAR method for behavioral questions</span>
-                </li>
-                <li className='flex items-start gap-2'>
-                  <CheckCircle className='h-4 w-4 mt-1 text-amber-600' />
-                  <span className='text-sm'>Stay calm and confident throughout</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          {/* MIDDLE COLUMN - Camera Setup */}
-          <div>
-            <div className='bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden'>
-              <div className='bg-gradient-to-r from-purple-600 to-pink-600 p-6'>
-                <h2 className='text-xl font-semibold text-white flex items-center gap-2'>
-                  <Camera className='h-5 w-5' />
-                  Camera & Audio Setup
-                </h2>
-              </div>
-              <div className='p-6'>
-                <div className="aspect-video bg-gray-100 rounded-xl overflow-hidden mb-6 relative">
-                  {isCameraOpen ? (
-                    <Webcam
-                      onUserMedia={handleWebcamUserMedia}
-                      onUserMediaError={handleWebcamUserMediaError}
-                      className='w-full h-full object-cover'
-                      mirrored={true}
-                      audio={true}
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center">
-                        <WebcamIcon className='h-20 w-20 text-gray-400 mx-auto mb-4' />
-                        <p className='text-gray-500 font-medium'>Camera Preview</p>
-                        <p className='text-sm text-gray-400'>Enable camera to see yourself</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Camera Status Indicators */}
-                  <div className="absolute top-4 right-4 flex gap-2">
-                    <div className={`p-2 rounded-full ${isCameraOpen ? 'bg-green-500' : 'bg-red-500'}`}>
-                      {isCameraOpen ? <Camera className='h-4 w-4 text-white' /> : <CameraOff className='h-4 w-4 text-white' />}
-                    </div>
-                    <div className={`p-2 rounded-full ${isMicEnabled ? 'bg-green-500' : 'bg-red-500'}`}>
-                      {isMicEnabled ? <Mic className='h-4 w-4 text-white' /> : <MicOff className='h-4 w-4 text-white' />}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <button
-                    onClick={handleCameraToggle}
-                    className={`w-full px-4 py-3 rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2 ${isCameraOpen
-                        ? 'bg-red-100 text-red-700 hover:bg-red-200 border-2 border-red-200'
-                        : 'bg-blue-600 text-white hover:bg-blue-700 border-2 border-blue-600'
-                      }`}
-                  >
-                    {isCameraOpen ? (
-                      <>
-                        <CameraOff className='h-5 w-5' />
-                        Turn Off Camera
-                      </>
-                    ) : (
-                      <>
-                        <Camera className='h-5 w-5' />
-                        Enable Camera & Microphone
-                      </>
-                    )}
-                  </button>
-
-                  <div className="text-center">
-                    <p className="text-sm text-gray-500">
-                      Make sure you're in a well-lit, quiet environment
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT COLUMN - Readiness Checklist */}
-          <div className='space-y-6'>
-            <div className='bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden'>
-              <div className='bg-gradient-to-r from-green-600 to-emerald-600 p-6'>
-                <h2 className='text-xl font-semibold text-white flex items-center gap-2'>
-                  <CheckCircle className='h-5 w-5' />
-                  Readiness Checklist
-                </h2>
-              </div>
-              <div className='p-6 space-y-4'>
-                {/* Checklist Items */}
-                {[
-                  {
-                    key: 'camera',
-                    label: 'Camera & Microphone Working',
-                    icon: Camera,
-                    auto: true,
-                    checked: checklist.camera && isCameraOpen
-                  },
-                  {
-                    key: 'environment',
-                    label: 'Quiet Environment Setup',
-                    icon: Settings,
-                    description: 'No distractions, good lighting'
-                  },
-                  {
-                    key: 'mindset',
-                    label: 'Ready & Confident',
-                    icon: Brain,
-                    description: 'Feeling prepared and positive'
-                  }
-                ].map(item => (
-                  <div
-                    key={item.key}
-                    className={`p-4 rounded-xl border-2 transition-all duration-200 ${(item.auto ? (checklist[item.key] && isCameraOpen) : checklist[item.key])
-                        ? 'bg-green-50 border-green-200'
-                        : 'bg-gray-50 border-gray-200 hover:border-gray-300'
-                      }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <button
-                        onClick={() => !item.auto && handleChecklistToggle(item.key)}
-                        className={`p-2 rounded-full transition-colors ${(item.auto ? (checklist[item.key] && isCameraOpen) : checklist[item.key])
-                            ? 'bg-green-500 text-white'
-                            : 'bg-gray-200 text-gray-400 hover:bg-gray-300'
-                          } ${item.auto ? 'cursor-default' : 'cursor-pointer'}`}
-                        disabled={item.auto}
-                      >
-                        {(item.auto ? (checklist[item.key] && isCameraOpen) : checklist[item.key]) ?
-                          <CheckCircle className='h-4 w-4' /> :
-                          <item.icon className='h-4 w-4' />
-                        }
-                      </button>
-                      <div className="flex-1">
-                        <h4 className="font-medium text-gray-900">{item.label}</h4>
-                        {item.description && (
-                          <p className="text-sm text-gray-500 mt-1">{item.description}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Interview Stats */}
-            <div className='bg-white rounded-2xl shadow-lg border border-gray-100 p-6'>
-              <h3 className='font-semibold text-gray-900 mb-4 flex items-center gap-2'>
-                <Clock className='h-5 w-5 text-blue-600' />
-                What to Expect
-              </h3>
-              <div className='space-y-3'>
-                <div className='flex justify-between items-center py-2 border-b border-gray-100'>
-                  <span className='text-gray-600'>Duration</span>
-                  <span className='font-medium text-gray-900'>15-30 minutes</span>
-                </div>
-                <div className='flex justify-between items-center py-2 border-b border-gray-100'>
-                  <span className='text-gray-600'>Number of Questions</span>
-                  <span className='font-medium text-gray-900'>5-8 questions</span>
-                </div>
-                <div className='flex justify-between items-center py-2'>
-                  <span className='text-gray-600'>Format</span>
-                  <span className='font-medium text-gray-900'>Interactive Q&A</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Action Section */}
-        <div className='mt-12 text-center'>
-          <div className='bg-white rounded-2xl shadow-lg border border-gray-100 p-8 max-w-2xl mx-auto'>
+    <div className='flex flex-col gap-10'>
+        <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-xl">
+                <ChevronLeft size={24} />
+            </Button>
             <div>
-              <div className='bg-blue-100 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center'>
-                <Play className='h-8 w-8 text-blue-600' />
-              </div>
-              <h3 className='text-2xl font-bold text-gray-900 mb-2'>Ready to Begin?</h3>
-              <p className='text-gray-600 mb-6'>Click the button below to start your mock interview session.</p>
-
-              <button 
-                onClick={startInterviewWithCamera}
-                className='bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 flex items-center gap-3 mx-auto shadow-lg hover:shadow-xl transform hover:-translate-y-1'
-              >
-                <Play className='h-6 w-6' />
-                Start Interview Now
-              </button>
+                <h1 className='text-3xl font-black tracking-tight text-gray-900 dark:text-white font-serif'>
+                   Preparation Lounge
+                </h1>
+                <p className="text-gray-500 dark:text-gray-400 font-medium">Verify your setup before the AI interview begins.</p>
             </div>
-
-            <div className='mt-6 pt-6 border-t border-gray-200'>
-              <p className='text-sm text-gray-500'>
-                Need help? Check our <span className='text-blue-600 cursor-pointer'>setup guide</span> or <span className='text-blue-600 cursor-pointer'>contact support</span>
-              </p>
-            </div>
-          </div>
         </div>
-      </div>
+
+        <div className='grid grid-cols-1 lg:grid-cols-12 gap-10'>
+            {/* Left Section - Rules & Strategy */}
+            <div className='lg:col-span-7 space-y-8'>
+                <motion.div 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className='bg-white dark:bg-gray-900 p-8 rounded-[32px] shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden'
+                >
+                    <div className='absolute top-0 right-0 p-4'>
+                        <ShieldCheck className='text-indigo-600 opacity-10' size={120} />
+                    </div>
+                    
+                    <h2 className='text-xl font-black text-gray-900 dark:text-white mb-8 flex items-center gap-3'>
+                        <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl text-indigo-600 dark:text-indigo-400">
+                            <Users size={20} />
+                        </div>
+                        Interview Blueprint
+                    </h2>
+
+                    <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
+                        <div className='space-y-6'>
+                            <div>
+                                <label className='text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 block mb-1'>Target Role</label>
+                                <p className='text-lg font-bold text-gray-900 dark:text-white'>{interviewDetails?.jobPosition}</p>
+                            </div>
+                            <div>
+                                <label className='text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 block mb-1'>Experience</label>
+                                <p className='text-lg font-bold text-gray-900 dark:text-white'>{interviewDetails?.jobExperience} Years</p>
+                            </div>
+                        </div>
+                        <div className='space-y-6'>
+                            <div>
+                                <label className='text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 block mb-1'>Tech Stack</label>
+                                <p className='text-sm font-semibold text-gray-700 dark:text-gray-300 leading-relaxed'>{interviewDetails?.jobDescription}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className='mt-10 p-6 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-2xl border border-indigo-100/50 dark:border-indigo-800/50 flex items-start gap-4'>
+                        <Lightbulb className='text-indigo-600 dark:text-indigo-400 shrink-0 mt-1' />
+                        <p className='text-sm font-medium text-indigo-900 dark:text-indigo-200 leading-relaxed'>
+                            <span className="font-bold">Pro Tip:</span> Our AI focuses heavily on the technical skills mentioned. Be prepared to explain your architectural choices in depth.
+                        </p>
+                    </div>
+                </motion.div>
+
+                {/* Readiness Checklist */}
+                <motion.div 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className='grid grid-cols-1 md:grid-cols-2 gap-6'
+                >
+                    {[
+                        { id: 'environment', label: 'Quiet Environment', desc: 'Minimal background noise', icon: ShieldCheck },
+                        { id: 'mindset', label: 'Technical Mindset', desc: 'Ready for deep dives', icon: Brain }
+                    ].map((item) => (
+                        <div 
+                            key={item.id}
+                            onClick={() => handleChecklistToggle(item.id)}
+                            className={`p-6 rounded-3xl border-2 transition-all cursor-pointer group ${checklist[item.id] ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800'}`}
+                        >
+                            <div className="flex items-center justify-between mb-4">
+                                <div className={`p-2 rounded-lg ${checklist[item.id] ? 'bg-green-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors'}`}>
+                                    <item.icon size={20} />
+                                </div>
+                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${checklist[item.id] ? 'bg-green-500 border-green-500' : 'border-gray-200 dark:border-gray-700'}`}>
+                                    {checklist[item.id] && <CheckCircle size={12} className="text-white" />}
+                                </div>
+                            </div>
+                            <h4 className={`font-bold text-sm ${checklist[item.id] ? 'text-green-900 dark:text-green-300' : 'text-gray-900 dark:text-gray-200'}`}>{item.label}</h4>
+                            <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400">{item.desc}</p>
+                        </div>
+                    ))}
+                </motion.div>
+            </div>
+
+            {/* Right Section - Hardware & Start */}
+            <div className='lg:col-span-5 space-y-8'>
+                <motion.div 
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className='bg-white dark:bg-gray-900 p-6 rounded-[32px] shadow-sm border border-gray-100 dark:border-gray-800'
+                >
+                    <div className="aspect-video bg-gray-50 dark:bg-gray-950 rounded-2xl overflow-hidden relative mb-6 border border-gray-100 dark:border-gray-800 group">
+                        {isCameraOpen ? (
+                            <Webcam
+                                onUserMedia={handleWebcamUserMedia}
+                                onUserMediaError={handleWebcamUserMediaError}
+                                className='w-full h-full object-cover'
+                                mirrored={true}
+                                audio={true}
+                            />
+                        ) : (
+                            <div className="flex items-center justify-center h-full flex-col gap-4">
+                                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center text-gray-400">
+                                    <Camera size={32} />
+                                </div>
+                                <div className="text-center">
+                                    <p className='text-gray-900 dark:text-white font-bold text-sm'>Camera Disabled</p>
+                                    <p className='text-xs text-gray-500 dark:text-gray-400 font-medium'>Enable permissions to continue</p>
+                                </div>
+                            </div>
+                        )}
+                        
+                        <div className="absolute top-4 right-4 flex gap-2">
+                            <div className={`w-3 h-3 rounded-full ${isCameraOpen ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-red-500'} animate-pulse`} />
+                             <div className={`w-3 h-3 rounded-full ${isMicEnabled ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-red-500'} animate-pulse`} />
+                        </div>
+                    </div>
+
+                    <Button 
+                        onClick={handleCameraToggle}
+                        variant={isCameraOpen ? "outline" : "default"}
+                        className={`w-full h-14 rounded-2xl font-bold flex items-center gap-3 transition-all ${isCameraOpen ? 'border-red-500 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-600/20'}`}
+                    >
+                        {isCameraOpen ? <><CameraOff size={20} /> Turn Off Camera</> : <><Camera size={20} /> Enable Camera & Mic</>}
+                    </Button>
+                </motion.div>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                >
+                    <Button 
+                        disabled={!checklist.mindset || !checklist.environment}
+                        onClick={startInterviewWithCamera}
+                        className='w-full h-20 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white rounded-[32px] text-xl font-black shadow-xl shadow-indigo-600/25 active:scale-[0.98] transition-all flex items-center justify-center gap-4 group disabled:opacity-50 disabled:grayscale'
+                    >
+                        <Zap size={28} className="fill-current group-hover:scale-125 transition-transform" />
+                        START SESSION
+                    </Button>
+                    <p className="text-center text-[10px] uppercase font-black tracking-widest text-gray-400 dark:text-gray-500 mt-4">
+                        Please finish the checklist to unlock the room
+                    </p>
+                </motion.div>
+            </div>
+        </div>
     </div>
   )
 }

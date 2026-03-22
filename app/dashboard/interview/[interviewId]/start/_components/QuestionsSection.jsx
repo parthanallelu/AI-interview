@@ -1,5 +1,8 @@
+"use client"
 import React, { useState, useEffect } from 'react'
-import { Volume2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Volume2, ChevronLeft, ChevronRight, HelpCircle, Sparkles } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Button } from '@/components/ui/button'
 
 function QuestionsSection({ 
     mockInterviewQuestions = [], 
@@ -11,178 +14,117 @@ function QuestionsSection({
     const [isSpeaking, setIsSpeaking] = useState(false);
 
     if (!mockInterviewQuestions || mockInterviewQuestions.length === 0) {
-        return (
-            <div className='p-6 bg-white rounded-xl shadow-lg'>
-                
-                <div className='text-gray-500 text-center py-8'>
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    Loading questions...
-                </div>
-            </div>
-        )
+        return null;
     }
 
     const currentQuestion = mockInterviewQuestions[currentQuestionIndex];
-    const currentAnswer = answers[currentQuestionIndex] || '';
 
-    // Text-to-speech functionality
     const speakQuestion = () => {
         if ('speechSynthesis' in window) {
-            // Cancel any ongoing speech
             window.speechSynthesis.cancel();
-            
             setIsSpeaking(true);
             const utterance = new SpeechSynthesisUtterance(currentQuestion.question);
-            utterance.rate = 0.8;
-            utterance.pitch = 1;
-            
-            utterance.onend = () => {
-                setIsSpeaking(false);
-            };
-            
-            utterance.onerror = () => {
-                setIsSpeaking(false);
-            };
-            
+            utterance.rate = 0.9;
+            utterance.onend = () => setIsSpeaking(false);
             window.speechSynthesis.speak(utterance);
-        } else {
-            alert('Text-to-speech is not supported in your browser');
         }
     };
 
-    // Navigation functions
-    const goToQuestion = (index) => {
-        if (onQuestionChange) {
-            onQuestionChange(index);
-        }
-    };
-
-    const goToPrevious = () => {
-        if (currentQuestionIndex > 0 && onQuestionChange) {
-            onQuestionChange(currentQuestionIndex - 1);
-        }
-    };
-
-    const goToNext = () => {
-        if (currentQuestionIndex < mockInterviewQuestions.length - 1 && onQuestionChange) {
-            onQuestionChange(currentQuestionIndex + 1);
-        }
-    };
-
-    // Handle answer input
-    const handleAnswerChange = (value) => {
-        if (onAnswerChange) {
-            onAnswerChange(currentQuestionIndex, value);
-        }
-    };
-
-    // Cleanup speech synthesis on unmount
     useEffect(() => {
-        return () => {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-            }
-        };
+        return () => window.speechSynthesis.cancel();
     }, []);
 
     return (
-        <div className='p-6 bg-white rounded-xl shadow-lg'>
-            <div className="flex items-center justify-between mb-6">
-                
-                <div className="text-sm text-gray-500">
-                    Question {currentQuestionIndex + 1} of {mockInterviewQuestions.length}
+        <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className='bg-white dark:bg-gray-900 p-8 rounded-[32px] shadow-sm border border-gray-100 dark:border-gray-800 h-full flex flex-col'
+        >
+            <div className="flex items-center justify-between mb-10">
+                <div className="flex items-center gap-2 px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 rounded-full text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800">
+                    <Sparkles size={14} />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Question {currentQuestionIndex + 1}</span>
+                </div>
+                <div className="flex gap-1">
+                    {mockInterviewQuestions.map((_, index) => (
+                        <div 
+                            key={index}
+                            className={`h-1.5 rounded-full transition-all duration-300 ${
+                                index === currentQuestionIndex 
+                                    ? 'w-6 bg-indigo-600' 
+                                    : answers[index] 
+                                        ? 'w-2 bg-green-500' 
+                                        : 'w-2 bg-gray-200 dark:bg-gray-800'
+                            }`}
+                        />
+                    ))}
                 </div>
             </div>
 
-            {/* Progress Bar */}
-            <div className="mb-6">
-                <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-gray-700">Progress</span>
-                    <span className="text-sm font-medium text-gray-700">
-                        {Object.keys(answers).length}/{mockInterviewQuestions.length} Answered
-                    </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${(Object.keys(answers).length / mockInterviewQuestions.length) * 100}%` }}
-                    ></div>
-                </div>
-            </div>
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={currentQuestionIndex}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.3 }}
+                    className="flex-1"
+                >
+                    <div className="flex items-start justify-between gap-6 mb-8">
+                        <h2 className='text-2xl md:text-3xl font-black text-gray-900 dark:text-white leading-tight font-serif'>
+                            {currentQuestion.question}
+                        </h2>
+                        <Button 
+                            variant="outline" 
+                            size="icon" 
+                            onClick={speakQuestion}
+                            className={`rounded-2xl shrink-0 h-14 w-14 shadow-sm transition-all ${isSpeaking ? 'bg-indigo-600 text-white border-indigo-600 animate-pulse' : 'hover:border-indigo-500 hover:text-indigo-600 dark:bg-gray-800'}`}
+                        >
+                            <Volume2 size={24} />
+                        </Button>
+                    </div>
 
-            {/* Question Navigation */}
-            <div className="flex flex-wrap gap-2 mb-6">
-                {mockInterviewQuestions.map((_, index) => (
-                    <button
-                        key={index}
-                        onClick={() => goToQuestion(index)}
-                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                            index === currentQuestionIndex
-                                ? 'bg-blue-600 text-white'
-                                : answers[index]
-                                ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                    >
-                        Q{index + 1}
-                    </button>
-                ))}
-            </div>
+                    <div className="p-6 bg-gray-50 dark:bg-gray-950 rounded-2xl border border-gray-100 dark:border-gray-800 mb-8">
+                        <div className="flex items-center gap-2 mb-3 text-gray-400">
+                            <HelpCircle size={16} />
+                            <span className="text-[10px] font-black uppercase tracking-widest">Target Context</span>
+                        </div>
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400 italic">
+                            {currentQuestion.category || "General Technical Inquiry"} • Focus on {currentQuestion.difficulty || "standard"} expectations.
+                        </p>
+                    </div>
+                </motion.div>
+            </AnimatePresence>
 
-            {/* Current Question */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                <div className="flex items-start justify-between gap-4">
-                    <h2 className='text-lg font-semibold text-gray-900 flex-1'>
-                        {currentQuestionIndex + 1}. {currentQuestion.question}
-                    </h2>
-                    <button
-                        onClick={speakQuestion}
-                        disabled={isSpeaking}
-                        className={`p-2 rounded-lg transition-all ${
-                            isSpeaking 
-                                ? 'bg-blue-100 text-blue-600' 
-                                : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                        }`}
-                        title="Read question aloud"
-                    >
-                        <Volume2 size={20} />
-                    </button>
-                </div>
-            </div>
-
-            {/* Answer Input */}
-            <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Your Answer
-                </label>
-                <textarea
-                    value={currentAnswer}
-                    onChange={(e) => handleAnswerChange(e.target.value)}
-                    placeholder="Type your answer here or use voice recording..."
-                    className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                />
-            </div>
-
-            {/* Navigation Buttons */}
-            <div className="flex justify-between">
-                <button
-                    onClick={goToPrevious}
+            <div className="flex items-center justify-between mt-auto pt-8">
+                <Button 
+                    variant="ghost" 
+                    onClick={() => onQuestionChange(currentQuestionIndex - 1)}
                     disabled={currentQuestionIndex === 0}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="h-12 px-6 rounded-xl font-bold gap-2 text-gray-500 hover:text-indigo-600 disabled:opacity-30"
                 >
                     <ChevronLeft size={20} />
                     Previous
-                </button>
-                <button
-                    onClick={goToNext}
-                    disabled={currentQuestionIndex === mockInterviewQuestions.length - 1}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                >
-                    Next
-                    <ChevronRight size={20} />
-                </button>
+                </Button>
+                
+                <div className="flex items-center gap-2">
+                    {currentQuestionIndex < mockInterviewQuestions.length - 1 ? (
+                        <Button 
+                            onClick={() => onQuestionChange(currentQuestionIndex + 1)}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-12 px-8 font-bold shadow-lg shadow-indigo-600/20 group transition-all"
+                        >
+                            Next Question
+                            <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                        </Button>
+                    ) : (
+                        <div className="flex items-center gap-2 text-green-600 dark:text-green-400 font-black text-sm uppercase tracking-widest px-4 py-2 bg-green-50 dark:bg-green-950/20 rounded-xl border border-green-100 dark:border-green-900">
+                            <Sparkles size={16} />
+                            Final Question
+                        </div>
+                    )}
+                </div>
             </div>
-        </div>
+        </motion.div>
     )
 }
 

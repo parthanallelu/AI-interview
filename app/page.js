@@ -1,12 +1,22 @@
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
+"use client"
+
+import React from 'react'
+import Header from './dashboard/_components/Header'
+import Hero from './_components/Landing/Hero'
+import Features from './_components/Landing/Features'
+import Pricing from './_components/Landing/Pricing'
+import FAQ from './_components/Landing/FAQ'
+import Footer from './_components/Landing/Footer'
 
 export default function Home() {
   return (
-    <div>
-      <h1>Hello World</h1>
-      <Button variant="outline">Button</Button>
-    </div>
-  );
+    <main className="min-h-screen bg-white dark:bg-gray-950">
+      <Header />
+      <Hero />
+      <Features />
+      <Pricing />
+      <FAQ />
+      <Footer />
+    </main>
+  )
 }
-

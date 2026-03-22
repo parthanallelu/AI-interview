@@ -5,6 +5,10 @@ import { MockInterview } from '@/utils/schema';
 import { eq } from 'drizzle-orm';
 import QuestionsSection from './_components/QuestionsSection';
 import RecordAnswerSection from './_components/RecordAnswerSection';
+import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { ChevronLeft, Info, Send, Sparkles } from 'lucide-react';
 
 function StartInterview({ params }) {
   const { interviewId } = use(params);
@@ -12,11 +16,10 @@ function StartInterview({ params }) {
   const [error, setError] = useState(null);
   const [interviewDetails, setInterviewDetails] = useState(null);
   const [mockInterviewQuestions, setMockInterviewQuestions] = useState([]);
-  
-  // New states for enhanced functionality
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [recordedAnswers, setRecordedAnswers] = useState({});
+  const router = useRouter();
 
   useEffect(() => {
     if (interviewId) {
@@ -27,25 +30,12 @@ function StartInterview({ params }) {
   const getInterviewDetails = async () => {
     try {
       setIsLoading(true);
-      setError(null);
-      
       const result = await db.select().from(MockInterview).where(eq(MockInterview.mockid, interviewId));
-      
-      if (!result || result.length === 0) {
-        throw new Error('Interview not found');
-      }
-
+      if (!result || result.length === 0) throw new Error('Interview not found');
       const interview = result[0];
       setInterviewDetails(interview);
-
-      try {
-        const parsedQuestions = JSON.parse(interview.jsonmockresponse);
-        setMockInterviewQuestions(parsedQuestions);
-      } catch (parseError) {
-        console.error('Error parsing interview questions:', parseError);
-        setError('Failed to parse interview questions');
-      }
-
+      const parsedQuestions = JSON.parse(interview.jsonmockresp);
+      setMockInterviewQuestions(parsedQuestions);
     } catch (err) {
       console.error('Error fetching interview details:', err);
       setError(err.message || 'Failed to load interview');
@@ -54,159 +44,116 @@ function StartInterview({ params }) {
     }
   };
 
-  // Handle question navigation
   const handleQuestionChange = (newIndex) => {
     if (newIndex >= 0 && newIndex < mockInterviewQuestions.length) {
       setCurrentQuestionIndex(newIndex);
     }
   };
 
-  // Handle answer changes
   const handleAnswerChange = (questionIndex, answer) => {
-    setAnswers(prev => ({
-      ...prev,
-      [questionIndex]: answer
-    }));
+    setAnswers(prev => ({ ...prev, [questionIndex]: answer }));
   };
 
-  // Handle recorded answers
   const handleRecordedAnswer = (questionIndex, recordingUrl, transcriptText) => {
-    setRecordedAnswers(prev => ({
-      ...prev,
-      [questionIndex]: recordingUrl
-    }));
-  
-    const combinedText = transcriptText 
-      ? `${transcriptText}\n\n[Video answer recorded at ${new Date().toLocaleTimeString()}]` 
-      : `[Video answer recorded at ${new Date().toLocaleTimeString()}]`;
-  
-    setAnswers(prev => ({
-      ...prev,
-      [questionIndex]: combinedText
-    }));
+    setRecordedAnswers(prev => ({ ...prev, [questionIndex]: recordingUrl }));
+    setAnswers(prev => ({ ...prev, [questionIndex]: transcriptText }));
   };
-  
 
-  // Submit interview
   const handleSubmitInterview = async () => {
-    const answeredQuestions = Object.keys(answers).length;
-    const recordedQuestions = Object.keys(recordedAnswers).length;
-    const totalQuestions = mockInterviewQuestions.length;
-    
-    if (answeredQuestions === 0 && recordedQuestions === 0) {
-      alert('Please answer at least one question before submitting.');
-      return;
-    }
-    
-    const confirmSubmit = window.confirm(
-      `You have provided ${answeredQuestions} text answers and ${recordedQuestions} video answers out of ${totalQuestions} total questions.\n\nAre you sure you want to submit your interview?`
-    );
-    
-    if (confirmSubmit) {
-      try {
-        // Here you can save the answers to your database
-        // Example: Save to UserAnswer table or update MockInterview
-        console.log('Submitting interview:', {
-          interviewId,
-          answers,
-          recordedAnswers,
-          interviewDetails
-        });
-
-        // You can add database save logic here
-        // await db.insert(UserAnswer).values({
-        //   mockInterviewId: interviewId,
-        //   textAnswers: JSON.stringify(answers),
-        //   recordedAnswers: JSON.stringify(recordedAnswers),
-        //   submittedAt: new Date()
-        // });
-
-        alert('Interview submitted successfully! Thank you for your participation.');
-        
-        // Optional: Redirect to results page or dashboard
-        // router.push('/dashboard');
-        
-      } catch (error) {
-        console.error('Error submitting interview:', error);
-        alert('There was an error submitting your interview. Please try again.');
-      }
+    if (confirm('Are you sure you want to end the interview? You will be redirected to the feedback page.')) {
+        router.push(`/dashboard/interview/${interviewId}/feedback`);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg">Loading your interview...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-red-50 to-pink-100">
-        <div className="text-center bg-white p-8 rounded-xl shadow-lg">
-          <h2 className="text-2xl font-bold mb-4 text-red-600">Error</h2>
-          <p className="text-gray-700 mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
-          >
-            Try Again
-          </button>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+        <p className="text-gray-500 font-bold animate-pulse">Synchronizing AI Agents...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
-      <div className="max-w-full mx-auto px-6 lg:px-12">
+    <div className='flex flex-col gap-8'>
+        {/* Top Navigation & Status */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+                <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-xl">
+                    <ChevronLeft size={24} />
+                </Button>
+                <div>
+                    <h1 className='text-3xl font-black tracking-tight text-gray-900 dark:text-white font-serif'>
+                        Live Session
+                    </h1>
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                        <p className="text-xs font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">Recoding Active • {interviewDetails?.jobPosition}</p>
+                    </div>
+                </div>
+            </div>
 
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Interview Practice
-          </h1>
+            <div className="flex items-center gap-3">
+                <div className="hidden lg:flex flex-col items-end mr-4">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Progress</p>
+                    <p className="text-lg font-black text-indigo-600 leading-none">{currentQuestionIndex + 1} <span className="text-gray-300 dark:text-gray-700">/ {mockInterviewQuestions?.length}</span></p>
+                </div>
+                <Button 
+                    onClick={handleSubmitInterview}
+                    className="bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/20 dark:text-red-400 rounded-2xl px-6 h-12 font-bold transition-all flex items-center gap-2 border border-red-100 dark:border-red-900"
+                >
+                    <Send size={18} />
+                    End Interview
+                </Button>
+            </div>
+        </div>
+
+        {/* Global Progress Bar */}
+        <div className="w-full h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+            <motion.div 
+                className="h-full bg-indigo-600"
+                initial={{ width: 0 }}
+                animate={{ width: `${((currentQuestionIndex + 1) / mockInterviewQuestions?.length) * 100}%` }}
+                transition={{ type: 'spring', bounce: 0, duration: 0.5 }}
+            />
         </div>
 
         {/* Main Content Grid */}
-        <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+        <div className='grid grid-cols-1 lg:grid-cols-12 gap-10'>
+            {/* Left Section - Question Details */}
+            <div className='lg:col-span-6 space-y-6'>
+                <QuestionsSection 
+                    mockInterviewQuestions={mockInterviewQuestions}
+                    currentQuestionIndex={currentQuestionIndex}
+                    onQuestionChange={handleQuestionChange}
+                    answers={answers}
+                    onAnswerChange={handleAnswerChange}
+                />
+                
+                <div className='p-6 bg-amber-50 dark:bg-amber-950/20 rounded-[32px] border border-amber-100 dark:border-amber-900/50 flex items-start gap-4'>
+                    <div className="p-2 bg-amber-100 dark:bg-amber-900/50 rounded-xl text-amber-700 dark:text-amber-400">
+                        <Info size={20} />
+                    </div>
+                    <div>
+                        <h4 className='font-bold text-amber-900 dark:text-amber-300 text-sm mb-1'>Important Note</h4>
+                        <p className='text-xs font-medium text-amber-800 dark:text-amber-400 leading-relaxed'>
+                            Click on 'Record Answer' when you're ready to speak. The AI will listen to your response and provide a detailed analysis based on technical correctness and communication.
+                        </p>
+                    </div>
+                </div>
+            </div>
 
-
-          {/* Questions Section */}
-          <QuestionsSection 
-            mockInterviewQuestions={mockInterviewQuestions}
-            currentQuestionIndex={currentQuestionIndex}
-            onQuestionChange={handleQuestionChange}
-            answers={answers}
-            onAnswerChange={handleAnswerChange}
-          />
-          
-          {/* Recording Section */}
-          <RecordAnswerSection 
-            mockInterviewQuestions={mockInterviewQuestions}
-            currentQuestionIndex={currentQuestionIndex}
-            onRecordedAnswer={handleRecordedAnswer}
-            recordedAnswers={recordedAnswers}
-          />
+            {/* Right Section - AI Recording Chamber */}
+            <div className='lg:col-span-6'>
+                <RecordAnswerSection 
+                    mockInterviewQuestions={mockInterviewQuestions}
+                    currentQuestionIndex={currentQuestionIndex}
+                    onRecordedAnswer={handleRecordedAnswer}
+                    recordedAnswers={recordedAnswers}
+                    interviewId={interviewId}
+                />
+            </div>
         </div>
-
-        {/* Submit Button */}
-        <div className="mt-8 text-center">
-          <button
-            onClick={handleSubmitInterview}
-            className="px-8 py-4 bg-gradient-to-r from-green-600 to-blue-600 text-white font-bold text-lg rounded-xl hover:from-green-700 hover:to-blue-700 transform hover:scale-105 transition-all shadow-lg hover:shadow-xl"
-          >
-            Submit Interview
-          </button>
-          <p className="text-sm text-gray-600 mt-2">
-            Make sure to answer all questions before submitting
-          </p>
-        </div>
-      </div>
     </div>
   );
 }
