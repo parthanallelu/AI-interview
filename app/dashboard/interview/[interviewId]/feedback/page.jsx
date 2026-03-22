@@ -28,6 +28,9 @@ import {
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
+import { Card } from '@/components/ui/card'
 
 function Feedback({ params }) {
   const { interviewId } = use(params);
@@ -84,6 +87,25 @@ function Feedback({ params }) {
     }
   }
 
+  const downloadReport = async () => {
+    const element = document.getElementById('report-container');
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff'
+    });
+    
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save(`Interview_Report_${interviewId.substring(0,8)}.pdf`);
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
@@ -94,11 +116,11 @@ function Feedback({ params }) {
   }
 
   return (
-    <div className='flex flex-col gap-10 max-w-7xl mx-auto px-4 py-8'>
+    <div id="report-container" className='flex flex-col gap-10 max-w-7xl mx-auto px-4 py-8 bg-white dark:bg-gray-950 min-h-screen'>
         {/* Header Section */}
         <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={() => router.replace('/dashboard')} className="rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-800 h-12 w-12">
+                <Button variant="ghost" size="icon" onClick={() => router.replace('/dashboard')} className="rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-900 h-12 w-12">
                     <ChevronLeft size={24} />
                 </Button>
                 <div>
@@ -109,12 +131,22 @@ function Feedback({ params }) {
                 </div>
             </div>
             
-            <Button 
-                onClick={() => router.replace('/dashboard')}
-                className="hidden md:flex bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl px-8 h-12 font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 transition-all"
-            >
-                Back to Command Center
-            </Button>
+            <div className="flex gap-4">
+                <Button 
+                    variant="outline"
+                    onClick={downloadReport}
+                    className="hidden md:flex border-2 border-indigo-100 dark:border-indigo-900/40 rounded-2xl px-8 h-12 font-black text-xs uppercase tracking-widest hover:bg-indigo-50 dark:hover:bg-indigo-950 transition-all flex items-center gap-2"
+                >
+                    <FileText size={18} />
+                    Download PDF
+                </Button>
+                <Button 
+                    onClick={() => router.replace('/dashboard')}
+                    className="hidden md:flex bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl px-8 h-12 font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 transition-all"
+                >
+                    Back to Center
+                </Button>
+            </div>
         </div>
 
         {/* Global Summary Card */}

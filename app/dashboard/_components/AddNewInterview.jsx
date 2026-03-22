@@ -1,12 +1,12 @@
 "use client"
-
 import React, { useState } from 'react'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
 } from "@/components/ui/dialog"
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,205 +16,264 @@ import { MockInterview } from '@/utils/schema'
 import { v4 as uuidv4 } from 'uuid'
 import { useAuth } from '@/lib/AuthContext'
 import moment from 'moment'
-import { chatSession } from '@/utils/GeminiAI'
-import { LoaderCircle, Plus, Briefcase, Calendar, Lightbulb, Sparkles } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { Loader2, Plus, FileText, Upload, Briefcase, Sparkles, AlertCircle, FileUp, MessageSquareText } from 'lucide-react'
+import { useDropzone } from 'react-dropzone'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 
 function AddNewInterview() {
-  const [openDialog, setOpenDialog] = useState(false)
-  const [formData, setFormData] = useState({
-    jobPosition: '',
-    jobDescription: '',
-    yearOfExperience: '',
-    difficulty: 'Intermediate',
-    numQuestions: 5
-  })
-  const [loading, setLoading] = useState(false)
-  const { user } = useAuth();
-  const router = useRouter();
+    const [openDialog, setOpenDialog] = useState(false)
+    const [jobPosition, setJobPosition] = useState('')
+    const [jobDesc, setJobDesc] = useState('')
+    const [jobExperience, setJobExperience] = useState('')
+    const [resumeFile, setResumeFile] = useState(null)
+    const [resumeText, setResumeText] = useState('')
+    const [isBehavioral, setIsBehavioral] = useState(false)
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState(null)
+    const { user } = useAuth()
+    const router = useRouter()
 
-  const handleInputChange = (name, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
-  }
+    const onDrop = (acceptedFiles) => {
+        const file = acceptedFiles[0];
+        if (file && file.type === 'application/pdf') {
+            setResumeFile(file);
+            setError(null);
+        } else {
+            setError("Only PDF resumes are supported.");
+        }
+    };
 
-  const onSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({
+        onDrop,
+        accept: { 'application/pdf': ['.pdf'] },
+        multiple: false
+    });
 
-    const inputPrompt = `Job Position: ${formData.jobPosition}, Job Description: ${formData.jobDescription}, Years of Experience: ${formData.yearOfExperience}, Difficulty: ${formData.difficulty}, Number of Questions: ${formData.numQuestions}. Based on this information, please give me ${formData.numQuestions} interview questions with answers in JSON format. Give "question" and "answer" and "difficulty" and "category" as fields in JSON.`;
+    const onSubmit = async (e) => {
+        e.preventDefault()
+        setLoading(true)
+        setError(null)
 
-    try {
-      const result = await chatSession.sendMessage(inputPrompt);
-      const mockJsonResp = (await result.response.text()).replace('```json', '').replace('```', '');
-      
-      const resp = await db.insert(MockInterview)
-        .values({
-          mockid: uuidv4(),
-          jsonmockresp: mockJsonResp,
-          jobPosition: formData.jobPosition,
-          jobDescription: formData.jobDescription,
-          jobExperience: formData.yearOfExperience,
-          createdby: user?.email,
-          createdat: moment().format('DD-MM-YYYY'),
-          difficulty: formData.difficulty,
-          numQuestions: formData.numQuestions
-        }).returning({ mockid: MockInterview.mockid });
+        try {
+            let extractedResumeText = '';
+            
+            // Extract text from Resume if provided
+            if (resumeFile) {
+                const formData = new FormData();
+                formData.append('file', resumeFile);
+                
+                const extractResponse = await fetch('/api/extract-pdf', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const extractData = await extractResponse.json();
+                if (extractData.text) {
+                    extractedResumeText = extractData.text;
+                }
+            }
+            
+            const prompt = `
+                Job Position: ${jobPosition}
+                Job Description: ${jobDesc}
+                Years of Experience: ${jobExperience}
+                Candidate Background (from Resume): ${extractedResumeText || "Not provided."}
+                Interview Type: ${isBehavioral ? "Behavioral & HR Prep" : "Technical & Domain Specific"}
 
-      if (resp) {
-        setOpenDialog(false);
-        router.push('/dashboard/interview/' + resp[0].mockid);
-      }
-    } catch (error) {
-      console.error("Error generating interview:", error);
-    } finally {
-      setLoading(false);
+                As a world-class hiring manager, generate exactly 5 interview questions.
+                ${isBehavioral ? "Focus heavily on behavioral questions using the STAR method (Situation, Task, Action, Result)." : "Focus on technical problem-solving and domain-specific knowledge."}
+                Crucial: Tailor the questions specifically to the candidate's background (resume) and how it aligns with the job description.
+                Return strictly in JSON format as an array of objects:
+                [{ "question": "...", "answer": "...", "difficulty": "...", "category": "..." }]
+            `;
+
+            const response = await fetch("/api/generate-questions", {
+                method: "POST",
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: prompt }),
+            });
+
+            const jsonResponse = await response.json();
+            
+            if (jsonResponse.error) throw new Error(jsonResponse.error);
+
+            const mockId = uuidv4();
+            const resp = await db.insert(MockInterview)
+                .values({
+                    mockid: mockId,
+                    jsonmockresponse: JSON.stringify(jsonResponse),
+                    jobPosition: jobPosition,
+                    jobDescription: jobDesc,
+                    jobExperience: jobExperience,
+                    createdby: user?.email || 'anonymous',
+                    createdat: new Date(),
+                    resumeText: extractedResumeText,
+                    jobDescText: jobDesc
+                }).returning({ id: MockInterview.id });
+
+            if (resp) {
+                setOpenDialog(false);
+                router.push('/dashboard/interview/' + mockId);
+            }
+        } catch (err) {
+            console.error(err);
+            setError("Simulation initialization failed. Check your network or file format.");
+        } finally {
+            setLoading(false);
+        }
     }
-  }
 
-  return (
-    <div>
-      <div 
-        className='p-10 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 hover:bg-white dark:hover:bg-gray-900 hover:border-indigo-500 dark:hover:border-indigo-400 transition-all cursor-pointer flex flex-col items-center justify-center gap-4 group h-full shadow-sm hover:shadow-xl'
-        onClick={() => setOpenDialog(true)}
-      >
-        <div className='w-16 h-16 bg-indigo-100 dark:bg-indigo-900/40 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform duration-300 shadow-sm'>
-            <Plus size={32} />
+    return (
+        <div>
+            <div 
+                className='p-10 border-4 border-dashed rounded-[40px] bg-white dark:bg-gray-950 border-gray-100 dark:border-gray-800 hover:border-indigo-600 hover:bg-indigo-50/10 transition-all cursor-pointer group flex flex-col items-center justify-center gap-6 shadow-2xl shadow-gray-200/50 dark:shadow-none'
+                onClick={() => setOpenDialog(true)}
+            >
+                <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-indigo-600/30 group-hover:scale-110 transition-transform">
+                    <Plus size={40} />
+                </div>
+                <div className="text-center">
+                    <h2 className='font-black text-2xl text-gray-900 dark:text-white uppercase tracking-tighter'>Initialize New Assessment</h2>
+                    <p className='text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mt-2'>Configure AI Simulation Parameters</p>
+                </div>
+            </div>
+
+            <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+                <DialogContent className="max-w-3xl rounded-[40px] border-none shadow-2xl p-0 overflow-hidden bg-white dark:bg-gray-950">
+                    <div className="bg-indigo-600 p-10 flex items-center justify-between">
+                         <div className="space-y-2">
+                             <DialogTitle className="text-3xl font-black text-white uppercase tracking-tighter italic font-serif">Assessment Config</DialogTitle>
+                             <DialogDescription className="text-indigo-100 text-xs font-black uppercase tracking-[0.2em] opacity-80">Syncing Simulation with Job Requirements</DialogDescription>
+                         </div>
+                         <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center text-white backdrop-blur-md">
+                             <Sparkles size={32} />
+                         </div>
+                    </div>
+
+                    <form onSubmit={onSubmit} className="p-10 space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className='space-y-3'>
+                                <label className='text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 flex items-center gap-2'>
+                                    <Briefcase size={14} /> Target Position
+                                </label>
+                                <Input 
+                                    placeholder="e.g. Senior Full Stack Engineer" 
+                                    required
+                                    onChange={(event) => setJobPosition(event.target.value)}
+                                    className="h-14 rounded-2xl border-gray-100 dark:border-gray-800 focus:ring-indigo-600 font-bold"
+                                />
+                            </div>
+                            <div className='space-y-3'>
+                                <label className='text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 flex items-center gap-2'>
+                                    <FileText size={14} /> Years of Experience
+                                </label>
+                                <Input 
+                                    placeholder="e.g. 5" 
+                                    type="number" 
+                                    required
+                                    max="50"
+                                    onChange={(event) => setJobExperience(event.target.value)}
+                                    className="h-14 rounded-2xl border-gray-100 dark:border-gray-800 focus:ring-indigo-600 font-bold"
+                                />
+                            </div>
+                        </div>
+
+                        <div className='space-y-3'>
+                            <label className='text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 flex items-center gap-2'>
+                                <Sparkles size={14} /> Job Description / Tech Stack
+                            </label>
+                            <Textarea 
+                                placeholder="Paste the job requirements or specific technologies you want to be tested on..." 
+                                required
+                                onChange={(event) => setJobDesc(event.target.value)}
+                                className="min-h-[120px] rounded-3xl border-gray-100 dark:border-gray-800 focus:ring-indigo-600 font-bold p-6"
+                            />
+                        </div>
+
+                        {/* Behavioral Toggle */}
+                        <div className="flex items-center justify-between p-6 bg-indigo-50/30 dark:bg-indigo-950/20 rounded-3xl border border-indigo-100 dark:border-indigo-900/40">
+                             <div className="flex items-center gap-4">
+                                 <div className="p-3 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-600/20">
+                                     <MessageSquareText size={24} />
+                                 </div>
+                                 <div className="space-y-1">
+                                     <Label className="text-sm font-black uppercase tracking-widest text-gray-900 dark:text-white">Behavioral Focus</Label>
+                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Prioritize soft skills & STAR method</p>
+                                 </div>
+                             </div>
+                             <Switch 
+                                checked={isBehavioral}
+                                onCheckedChange={setIsBehavioral}
+                                className="data-[state=checked]:bg-indigo-600"
+                             />
+                        </div>
+
+                        {/* Resume Upload Section */}
+                        <div className='space-y-3'>
+                            <label className='text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 flex items-center gap-2'>
+                                <FileUp size={14} /> Professional Resume (Optional)
+                            </label>
+                            <div 
+                                {...getRootProps()} 
+                                className={`border-2 border-dashed rounded-[32px] p-8 text-center transition-all cursor-pointer ${
+                                    isDragActive ? 'border-indigo-600 bg-indigo-50/50' : 
+                                    resumeFile ? 'border-green-500 bg-green-50/20' : 
+                                    'border-gray-100 dark:border-gray-800 hover:border-gray-300'
+                                }`}
+                            >
+                                <input {...getInputProps()} />
+                                {resumeFile ? (
+                                    <div className="flex items-center justify-center gap-3 text-green-600 font-black uppercase tracking-widest text-xs">
+                                        <FileText size={20} />
+                                        {resumeFile.name} (Ready for Analysis)
+                                    </div>
+                                ) : (
+                                    <div className="text-gray-400 space-y-2">
+                                        <Upload size={32} className="mx-auto mb-2 opacity-20" />
+                                        <p className="text-[10px] font-black uppercase tracking-widest">DRAG PDF OR CLICK TO ATTACH</p>
+                                        <p className="text-[8px] font-black uppercase tracking-widest opacity-40">AI WILL CUSTOMIZE QUESTIONS TO YOUR BACKGROUND</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {error && (
+                            <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 rounded-2xl border border-red-100 dark:border-red-900 text-xs font-bold">
+                                <AlertCircle size={18} />
+                                {error}
+                            </div>
+                        )}
+
+                        <div className='flex gap-4 justify-end pt-4'>
+                            <Button 
+                                type="button" 
+                                variant="ghost" 
+                                onClick={() => setOpenDialog(false)}
+                                className="rounded-2xl h-14 px-8 font-black text-xs uppercase tracking-widest text-gray-400"
+                            >
+                                Abort
+                            </Button>
+                            <Button 
+                                type="submit" 
+                                disabled={loading}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl h-14 px-10 font-black text-xs uppercase tracking-widest shadow-2xl shadow-indigo-600/30 active:scale-95 transition-all"
+                            >
+                                {loading ? (
+                                    <div className='flex items-center gap-3'>
+                                        <Loader2 className='animate-spin' size={20} />
+                                        GEN ARCHIVING...
+                                    </div>
+                                ) : 'START AI SIMULATION'}
+                            </Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
-        <div className='text-center'>
-            <h2 className='font-black text-xl text-gray-800 dark:text-white mb-1'>Add New Interview</h2>
-            <p className='text-sm text-gray-500 dark:text-gray-400 font-medium'>Create a new mock interview session <br/> tailored to your job application</p>
-        </div>
-        <Button className="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-8 font-bold shadow-lg shadow-indigo-500/20 active:scale-95 transition-all">
-            Get Started
-        </Button>
-      </div>
-
-      <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-        <DialogContent className='max-w-2xl bg-white dark:bg-gray-950 border-none rounded-[32px] p-0 overflow-hidden shadow-2xl'>
-          <div className='bg-indigo-600 p-10 text-white relative overflow-hidden'>
-             <div className='absolute top-[-20px] right-[-20px] w-32 h-32 bg-white/10 rounded-full blur-3xl' />
-             <div className='absolute bottom-[-20px] left-[-20px] w-24 h-24 bg-blue-400/20 rounded-full blur-2xl' />
-             <DialogHeader>
-                <DialogTitle className='text-4xl font-black mb-3 tracking-tight font-serif'>New AI Interview</DialogTitle>
-                <DialogDescription className='text-indigo-100 text-lg font-medium opacity-90 leading-relaxed'>
-                   Our AI will craft a high-fidelity interview experience based on your specific target role and experience level.
-                </DialogDescription>
-             </DialogHeader>
-          </div>
-          
-          <form onSubmit={onSubmit} className='p-10 space-y-8'>
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
-              <div className='space-y-3'>
-                <Label htmlFor="jobPosition" className='text-xs font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 flex items-center gap-2'>
-                  <Briefcase size={14} className="text-indigo-600" /> Job Role / Position
-                </Label>
-                <Input
-                  id="jobPosition"
-                  placeholder="e.g., Senior Frontend Engineer"
-                  required
-                  value={formData.jobPosition}
-                  onChange={(e) => handleInputChange('jobPosition', e.target.value)}
-                  className='rounded-2xl border-gray-100 dark:border-gray-800 h-14 bg-gray-50 dark:bg-gray-900/50 focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all font-semibold'
-                />
-              </div>
-
-              <div className='space-y-3'>
-                <Label htmlFor="yearOfExperience" className='text-xs font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 flex items-center gap-2'>
-                  <Calendar size={14} className="text-indigo-600" /> Years of Experience
-                </Label>
-                <Input
-                  type="number"
-                  id="yearOfExperience"
-                  placeholder="e.g., 5"
-                  min="0"
-                  required
-                  value={formData.yearOfExperience}
-                  onChange={(e) => handleInputChange('yearOfExperience', e.target.value)}
-                  className='rounded-2xl border-gray-100 dark:border-gray-800 h-14 bg-gray-50 dark:bg-gray-900/50 focus:ring-4 focus:ring-indigo-500/5 transition-all text-center font-bold text-lg'
-                />
-              </div>
-            </div>
-
-            <div className='space-y-3'>
-              <Label htmlFor="jobDescription" className='text-xs font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 flex items-center gap-2'>
-                <Lightbulb size={14} className="text-indigo-600" /> Tech Stack / Skills
-              </Label>
-              <Textarea
-                id="jobDescription"
-                placeholder="React, Node.js, Next.js, tailwind, System Design..."
-                rows={3}
-                required
-                value={formData.jobDescription}
-                onChange={(e) => handleInputChange('jobDescription', e.target.value)}
-                className='rounded-2xl border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 focus:ring-4 focus:ring-indigo-500/5 transition-all resize-none p-4 font-medium'
-              />
-            </div>
-
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
-               <div className='space-y-3'>
-                  <Label htmlFor="difficulty" className='text-xs font-black uppercase tracking-widest text-gray-500 dark:text-gray-400'>Difficulty Level</Label>
-                  <select
-                    id="difficulty"
-                    value={formData.difficulty}
-                    onChange={(e) => handleInputChange('difficulty', e.target.value)}
-                    className='w-full h-14 px-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 rounded-2xl focus:ring-4 focus:ring-indigo-500/5 transition-all font-bold appearance-none cursor-pointer'
-                  >
-                    <option value="Beginner">Beginner</option>
-                    <option value="Intermediate">Intermediate</option>
-                    <option value="Advanced">Advanced</option>
-                    <option value="Expert">Expert</option>
-                  </select>
-               </div>
-               <div className='space-y-3'>
-                  <Label htmlFor="numQuestions" className='text-xs font-black uppercase tracking-widest text-gray-500 dark:text-gray-400'>Question Count</Label>
-                  <Input
-                    type="number"
-                    id="numQuestions"
-                    min="1"
-                    max="10"
-                    value={formData.numQuestions}
-                    onChange={(e) => handleInputChange('numQuestions', parseInt(e.target.value))}
-                    className='rounded-2xl border-gray-100 dark:border-gray-800 h-14 bg-gray-50 dark:bg-gray-900/50 focus:ring-4 focus:ring-indigo-500/5 transition-all text-center font-bold text-lg'
-                  />
-               </div>
-            </div>
-
-            <div className='flex justify-end gap-4 pt-4'>
-              <Button 
-                type="button" 
-                variant="ghost" 
-                onClick={() => setOpenDialog(false)}
-                className='rounded-2xl px-8 h-12 font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors'
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={loading}
-                className='bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl px-10 h-12 font-bold shadow-xl shadow-indigo-600/20 active:scale-95 transition-all flex items-center gap-2'
-              >
-                {loading ? (
-                  <>
-                    <LoaderCircle className='animate-spin' size={18} />
-                    Preparing Session...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={18} />
-                    Start Now
-                  </>
-                )}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </div>
-  )
+    )
 }
 
 export default AddNewInterview
