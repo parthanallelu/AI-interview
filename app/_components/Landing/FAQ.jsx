@@ -27,7 +27,7 @@ function FAQ() {
   const [openIndex, setOpenIndex] = useState(null);
 
   return (
-    <section className="py-24 bg-gray-50 dark:bg-gray-950/50">
+    <section id="faq" className="py-24 bg-gray-50 dark:bg-gray-950/50">
       <div className="container mx-auto px-4 max-w-4xl">
         <div className="text-center mb-16">
           <h2 className="text-blue-600 dark:text-blue-400 font-bold tracking-wider uppercase text-sm mb-3">Support</h2>

@@ -52,7 +52,7 @@ const features = [
 
 function Features() {
   return (
-    <section className="py-24 bg-gray-50 dark:bg-gray-950/50">
+    <section id="features" className="py-24 bg-gray-50 dark:bg-gray-950/50">
       <div className="container mx-auto px-4">
         <div className="text-center max-w-3xl mx-auto mb-20">
           <h2 className="text-blue-600 dark:text-blue-400 font-bold tracking-wider uppercase text-sm mb-3">Features</h2>

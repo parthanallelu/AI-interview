@@ -35,8 +35,13 @@ function StartInterview({ params }) {
       if (!result || result.length === 0) throw new Error('Interview not found');
       const interview = result[0];
       setInterviewDetails(interview);
-      const parsedQuestions = JSON.parse(interview.jsonmockresp);
-      setMockInterviewQuestions(parsedQuestions);
+      try {
+          const parsedQuestions = JSON.parse(interview.jsonmockresponse);
+          setMockInterviewQuestions(parsedQuestions);
+      } catch (parseErr) {
+          console.error('Failed to parse questions:', parseErr);
+          setError('Failed to parse interview questions data.');
+      }
     } catch (err) {
       console.error('Error fetching interview details:', err);
       setError(err.message || 'Failed to load interview');

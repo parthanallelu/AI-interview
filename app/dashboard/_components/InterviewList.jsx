@@ -11,6 +11,7 @@ import { Calendar, Briefcase, FileText, ArrowRight } from 'lucide-react';
 function InterviewList() {
     const { user } = useAuth();
     const [interviewList, setInterviewList] = useState([]);
+    const [loading, setLoading] = useState(true);
     const router = useRouter();
 
     useEffect(() => {
@@ -18,12 +19,19 @@ function InterviewList() {
     }, [user])
 
     const GetInterviewList = async () => {
-        const result = await db.select()
-            .from(MockInterview)
-            .where(eq(MockInterview.createdby, user?.email))
-            .orderBy(desc(MockInterview.id));
+        setLoading(true);
+        try {
+            const result = await db.select()
+                .from(MockInterview)
+                .where(eq(MockInterview.createdby, user?.email))
+                .orderBy(desc(MockInterview.id));
 
-        setInterviewList(result);
+            setInterviewList(result);
+        } catch (error) {
+            console.error("Error fetching interviews:", error);
+        } finally {
+            setLoading(false);
+        }
     }
 
     return (
@@ -41,7 +49,12 @@ function InterviewList() {
             </div>
             
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 p-4 pt-0'>
-                {interviewList?.length > 0 ? interviewList.map((interview, index) => (
+                {loading ? (
+                    [1, 2, 3].map((item, index) => (
+                        <div key={index} className='h-[280px] w-full bg-gray-100/50 dark:bg-gray-800/50 animate-pulse rounded-[32px] border border-gray-100 dark:border-gray-800'></div>
+                    ))
+                ) : interviewList?.length > 0 ? (
+                    interviewList.map((interview, index) => (
                     <motion.div 
                         key={index}
                         initial={{ opacity: 0, scale: 0.95 }}
@@ -82,10 +95,11 @@ function InterviewList() {
                             </Button>
                         </div>
                     </motion.div>
-                )) : (
-                    [1, 2, 3].map((item, index) => (
-                        <div key={index} className='h-[280px] w-full bg-gray-100/50 dark:bg-gray-800/50 animate-pulse rounded-[32px] border border-gray-100 dark:border-gray-800'></div>
                     ))
+                ) : (
+                    <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12 bg-gray-50 dark:bg-gray-900 rounded-[32px] border border-dashed border-gray-200 dark:border-gray-800">
+                        <p className="text-gray-500 font-bold">No interviews found. Initialize your first simulation!</p>
+                    </div>
                 )}
             </div>
         </div>

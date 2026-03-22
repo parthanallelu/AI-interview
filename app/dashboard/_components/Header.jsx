@@ -40,9 +40,10 @@ function Header() {
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-8">
-            <Link href="/" className="text-sm font-medium text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 transition-colors">Features</Link>
-            <Link href="/" className="text-sm font-medium text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 transition-colors">Pricing</Link>
-            <Link href="/" className="text-sm font-medium text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 transition-colors">How it works</Link>
+            <a href="/#features" className="text-sm font-medium text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 transition-colors">Features</a>
+            <a href="/#how-it-works" className="text-sm font-medium text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 transition-colors">How it works</a>
+            <a href="/#testimonials" className="text-sm font-medium text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 transition-colors">Testimonials</a>
+            <a href="/#pricing" className="text-sm font-medium text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 transition-colors">Pricing</a>
           </div>
 
           <div className="hidden md:flex items-center gap-4">
@@ -86,9 +87,10 @@ function Header() {
           className="md:hidden bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800"
         >
           <div className="container mx-auto px-4 py-8 flex flex-col gap-6">
-            <Link href="/" className="text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>Features</Link>
-            <Link href="/" className="text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
-            <Link href="/" className="text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>How it works</Link>
+            <a href="/#features" className="text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>Features</a>
+            <a href="/#how-it-works" className="text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>How it works</a>
+            <a href="/#testimonials" className="text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>Testimonials</a>
+            <a href="/#pricing" className="text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
             <div className="flex items-center gap-4 pt-4 border-t border-gray-100 dark:border-gray-800">
                <ModeToggle />
                {user ? (

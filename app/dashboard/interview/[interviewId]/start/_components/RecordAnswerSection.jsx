@@ -118,6 +118,10 @@ function RecordAnswerSection({
 
             const feedbackData = await response.json();
 
+            if (feedbackData.error) {
+                throw new Error(feedbackData.error);
+            }
+
             // Store the entire structured feedback as a JSON string in the 'feedback' column
             const resp = await db.insert(UserAnswer).values({
                 mockIdRef: interviewId,
