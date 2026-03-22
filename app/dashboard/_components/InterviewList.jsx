@@ -23,7 +23,6 @@ function InterviewList() {
             .where(eq(MockInterview.createdby, user?.email))
             .orderBy(desc(MockInterview.id));
 
-        console.log(result);
         setInterviewList(result);
     }
 
