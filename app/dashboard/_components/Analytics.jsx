@@ -11,7 +11,7 @@ import {
     AreaChart,
     Area
 } from 'recharts'
-import { TrendingUp, Award, BarChart3, Activity, Target, Zap } from 'lucide-react'
+import { TrendingUp, Award, BarChart3, Activity, Target, Zap, Trophy, Star } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 function Analytics({ feedbackList = [] }) {
